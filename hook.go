@@ -5,13 +5,18 @@
 package venmoslack
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"text/template"
 	"time"
+
+	"golang.org/x/net/context"
 
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/urlfetch"
 )
 
 func init() {
@@ -79,9 +84,53 @@ func hook(w http.ResponseWriter, r *http.Request) {
 	var data VenmoWebhook
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&data); err != nil {
-		http.Error(w, "Error decoding", http.StatusInternalServerError)
 		log.Errorf(ctx, "json: %v", err)
+		//http.Error(w, "Error decoding", http.StatusInternalServerError)
+		//return
 	}
 
 	log.Errorf(ctx, "OK! %+v", data)
+
+	tmpl := template.Must(template.ParseFiles("templates/slack-message.tmpl"))
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		log.Errorf(ctx, "template: %v", err)
+		http.Error(w, "Error rendering message", http.StatusInternalServerError)
+		return
+	}
+
+	if err := sendToSlack(ctx, buf.String()); err != nil {
+		log.Errorf(ctx, "slack: %v", err)
+		http.Error(w, "Error sending message", http.StatusInternalServerError)
+		return
+	}
+}
+
+func sendToSlack(ctx context.Context, msg string) error {
+	config, err := getConfig(ctx)
+	if err != nil {
+		return err
+	}
+
+	var m struct {
+		Text    string `json:"text"`
+		Channel string `json:"channel",omitempty`
+		//LinkNames int    `json:"link_names",omitempty`
+		//Username  string `json:"username",omitempty`
+		//IconEmoji string `json:"icon_emoji",omitempty`
+	}
+
+	m.Text = msg
+
+	data, _ := json.Marshal(m)
+	client := urlfetch.Client(ctx)
+	resp, err := client.Post(config.SlackHook, "application/json", bytes.NewBuffer(data))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != 200 {
+		log.Errorf(ctx, "Posting to slack: %+v\n%v", resp, data)
+		return fmt.Errorf("Unexpected status: %v", resp)
+	}
+	return nil
 }

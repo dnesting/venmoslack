@@ -1,0 +1,20 @@
+{{if eq .Type "payment.created" -}}
+	{{if eq .Data.Action "charge" -}}
+		{{.Data.Actor.DisplayName}} (@{{.Data.Actor.Username}}) requests *${{.Data.Amount}}* from {{.Data.Target.User.DisplayName}} (@{{.Data.Target.User.Username}}).
+> {{.Data.Note}}
+Managers can accept this request at https://groups.venmo.com/.
+	{{- else -}}
+		{{.Data.Actor.DisplayName}} (@{{.Data.Actor.Username}}) paid *${{.Data.Amount}}* to {{.Data.Target.User.DisplayName}} (@{{.Data.Target.User.Username}}).
+> {{.Data.Note}}
+	{{- end -}}
+{{- else -}}
+	The {{if eq .Data.Action "charge"}}request from{{else}}payment to{{end}} {{.Data.Actor.DisplayName}} (@{{.Data.Actor.Username}}) of *${{.Data.Amount}}*
+	{{- if eq .Data.Status "settled"}} was approved.
+	{{- else if eq .Data.Status "cancelled"}} was cancelled.
+	{{- else if eq .Data.Status "expired"}} expired without being accepted.
+	{{- else if eq .Data.Status "failed"}} failed.
+	{{- else if eq .Data.Status "pending"}} is pending.
+	{{- else }} is unknown.
+        {{- end}}
+{{- end}}
+	

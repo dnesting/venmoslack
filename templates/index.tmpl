@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<title>Venmo → Slack integration</title>
+<h1>Venmo → Slack Integration</h1>
+<style>
+  body {
+	  font-family: sans-serif;
+  }
+  h1, h2, h3 {
+	  font-weight: normal;
+  }
+  h3 {
+	  margin-top: 2em;
+  }
+  p, form {
+	  margin-left: 1em;
+  }
+  input {
+	  min-width: 50em;
+	  padding: 1ex;
+  }
+  h3.done {
+	  color: #484;
+  }
+  h3.done:after {
+	  content: " (done)";
+  }
+  .prob {
+	  color: red;
+  }
+</style>
+
+<p>This implements a webhook, reporting Venmo transactions to Slack.
+For details, see: <a href="https://github.com/dnesting/venmoslack">https://github.com/dnesting/venmoslack</a>.
+
+<h2>Configuration</h2>
+
+<h3 {{if .IsAdmin}}class="done"{{end}}>Step 1: Log in as the <tt>ADMIN_USER</tt></h3>
+<p>
+{{if .Email}}
+	You are logged in as <i>{{.Email}}</i>,
+
+	{{if .IsAdmin}}
+		which is an admin user.
+	{{else}}
+		but this is <span class="prob">NOT an admin user.</span>
+		Check the value of the <tt>ADMIN_USER</tt> environment
+		variable defined for this application and make sure that
+		it matches.
+	{{end}}
+	<a href="{{.Logout}}">Logout</a> if you'd like to try another user.
+{{else}}
+	<b><a href="{{.Login}}">Log in as an admin user</a></b>.
+{{end}}
+
+<h3 {{if .Config.SlackHook}}class="done"{{end}}>Step 2: Set up a Slack Webhook</h3>
+<p>
+{{if .Config.SlackHook}}
+A <a href="https://api.slack.com/incoming-webhooks">Slack Incoming Webhook</a> is
+configured.
+{{else}}
+<b>Create a <a href="https://api.slack.com/incoming-webhooks">Slack Incoming Webhook</a></b>
+and configure it here.
+{{end}}
+We will attempt to deliver messages to this webhook.
+
+{{if .IsAdmin}}
+    <form method="post">
+    Slack Hook URL:
+  	<input type="text" name="slackHook" value="{{.Config.SlackHook}}">
+  	<input type="submit" value="Save">
+    </form>
+{{else}}
+  You'll need to be signed in as an admin to do this step.
+{{end}}
+
+<h3>Step 3: Set up a Venmo Webhook</h3>
+<p>Sign in to your <a href="https://venmo.com">Venmo</a> account and
+<a href="https://venmo.com/account/settings/developer">configure a Webhook URL</a>
+pointing to <b><a href="/venmo-hook">the <tt>/venmo-hook</tt> path beneath this URL</a></b>.

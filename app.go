@@ -40,7 +40,11 @@ var tpl = template.Must(template.ParseGlob("templates/*.html"))
 
 func init() {
 	http.HandleFunc("/", handleIndex)
-	http.HandleFunc("/config", handleConfig)
+}
+
+func isAuthorized(ctx context.Context) bool {
+	u := user.Current(ctx)
+	return u != nil && u.Email == os.Getenv("ADMIN")
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -49,30 +53,13 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf(ctx, "%v", err)
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tpl.ExecuteTemplate(w, "index.html", conf); err != nil {
-		log.Errorf(ctx, "%v", err)
-	}
-}
-
-func isAuthorized(ctx context.Context) bool {
-	u := user.Current(ctx)
-	return u != nil && u.Email == os.Getenv("ADMIN")
-}
-
-func handleConfig(w http.ResponseWriter, r *http.Request) {
-	ctx := appengine.NewContext(r)
-	conf, err := getConfig(ctx)
-	if err != nil {
-		log.Errorf(ctx, "%v", err)
-	}
 
 	var email, logout, login string
 	if u := user.Current(ctx); u != nil {
-		logout, _ = user.LogoutURL(ctx, "/config")
+		logout, _ = user.LogoutURL(ctx, "/")
 		email = u.Email
 	} else {
-		login, _ = user.LoginURL(ctx, "/config")
+		login, _ = user.LoginURL(ctx, "/")
 	}
 
 	var message string
@@ -107,7 +94,7 @@ func handleConfig(w http.ResponseWriter, r *http.Request) {
 		Message: message,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tpl.ExecuteTemplate(w, "config.html", data); err != nil {
+	if err := tpl.ExecuteTemplate(w, "index.html", data); err != nil {
 		log.Errorf(ctx, "%v", err)
 	}
 }
