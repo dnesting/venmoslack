@@ -122,6 +122,8 @@ guess the URL and inject fake notifications.
 		pointing to:</p>
 		<pre id="keyedUrl">venmo-hook/{{.Config.AccessKey}}</pre>
 
+		<!-- XXX: Ideally, we'd do this on the server side, but cursory Google searching
+	             doesn't tell me how to do this, so I'll just use Javascript. -->
 		<script>
 		  var k = document.getElementById("keyedUrl")
 		  k.innerHTML = document.URL + k.innerHTML
