@@ -11,8 +11,13 @@
   h3 {
 	  margin-top: 2em;
   }
-  p, form {
+  pre, p, form {
 	  margin-left: 1em;
+  }
+  pre {
+	  background-color: #eee;
+	  border: solid 1px #888;
+	  padding: 1em;
   }
   input {
 	  min-width: 50em;
@@ -25,6 +30,9 @@
 	  content: " (done)";
   }
   .prob {
+	  background-color: #fee;
+	  border: solid 1px #f88;
+	  padding: 1em;
 	  color: red;
   }
 </style>
@@ -33,6 +41,10 @@
 For details, see: <a href="https://github.com/dnesting/venmoslack">https://github.com/dnesting/venmoslack</a>.
 
 <h2>Configuration</h2>
+
+{{if .Error}}
+	<p class="prob">{{.Error}}</p>
+{{end}}
 
 <h3 {{if .IsAdmin}}class="done"{{end}}>Step 1: Log in as the <tt>ADMIN</tt> user</h3>
 <p>
@@ -69,26 +81,55 @@ We will attempt to deliver messages to this webhook.
 	  	<input type="text" name="slackHook" value="{{.Config.SlackHook}}">
 		<input type="submit" name="action" value="Save">
         </div>
-	<div>Access Key:
-		<input type="text" name="key" value="{{.Config.AccessKey}}">
-		<input type="submit" name="action" value="Regenerate">
-	</div>
     </form>
 
-    {{if .Error}}
-    <p class="prob">{{.Error}}</p>
-    {{end}}
 {{else}}
-  You'll need to be signed in as an admin to do this step.
+  You'll need to be signed in as an admin to make changes.
 {{end}}
 
-<h3>Step 3: Set up a Venmo Webhook</h3>
-<p>Sign in to your <a href="https://venmo.com">Venmo</a> account and
-<a href="https://venmo.com/account/settings/developer">configure a Webhook URL</a>
-pointing to:</p>
-<p id="keyedUrl">/venmo-hook/{{.Config.AccessKey}}</p>
+<h3 {{if .Config.AccessKey}}class="done"{{end}}>Step 3: Create an Access Key</h3>
+<p>
+An access key is used to protect the Venmo Webhook URL so that random people can't
+guess the URL and inject fake notifications.
+{{if .Config.AccessKey}}
+	An access key is configured.
+	{{if .IsAdmin}}
+		You may regenerate this at any time in the event it's been compromised.
+		This will invalidate the old Venmo Webhook URL and will require you to
+		repeat the next step.
+	{{else}}
+		Sign in as an admin if you need to regenerate it.
+	{{end}}
+{{else}}
+	{{if .IsAdmin}}
+		No access key has been generated yet. Generate one now.
+	{{else}}
+		No access key has been generated yet, but you'll need to sign in as an admin to generate it.
+	{{end}}
+{{end}}
 
-<script>
-  var k = document.getElementById("keyedUrl")
-  k.innerHTML = document.URL + k.innerHTML
-</script>
+{{if .IsAdmin}}
+    <form method="post">
+	<input type="submit" name="action" value="Generate Access Key">
+    </form>
+{{end}}
+
+<h3>Step 4: Set up a Venmo Webhook</h3>
+{{if .Config.AccessKey}}
+	{{if .IsAdmin}}
+		<p>Sign in to your <a href="https://venmo.com">Venmo</a> account and
+		<a href="https://venmo.com/account/settings/developer">configure a Webhook URL</a>
+		pointing to:</p>
+		<pre id="keyedUrl">venmo-hook/{{.Config.AccessKey}}</pre>
+
+		<script>
+		  var k = document.getElementById("keyedUrl")
+		  k.innerHTML = document.URL + k.innerHTML
+		</script>
+	{{else}}
+		<p>You need to be signed in as an admin to obtain the Venmo Webhook URL.
+	{{end}}
+{{else}}
+	<p>You need to generate an access key (above) in order to obtain the Venmo Webhook URL
+	for this step.</p>
+{{end}}

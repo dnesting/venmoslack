@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -38,24 +39,26 @@ func writeConfig(ctx context.Context, c Config) (err error) {
 	return
 }
 
-var tpl = template.Must(template.ParseGlob("templates/*.tmpl"))
-
 func isAuthorized(ctx context.Context) bool {
 	u := user.Current(ctx)
 	return u != nil && u.Email == os.Getenv("ADMIN")
 }
 
 const keyBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const keyLength = 30
 
 func generateAccessKey() string {
-	b := make([]byte, 20)
+	b := make([]byte, keyLength)
 	for i := range b {
 		b[i] = keyBytes[rand.Int63()%int64(len(keyBytes))]
 	}
 	return string(b)
 }
 
+var tpl = template.Must(template.ParseGlob("templates/*.tmpl"))
+
 func init() {
+	rand.Seed(time.Now().UnixNano())
 	http.HandleFunc("/", handleIndex)
 }
 
@@ -74,10 +77,6 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		login, _ = user.LoginURL(ctx, "/")
 	}
 
-	if conf.AccessKey == "" {
-		conf.AccessKey = generateAccessKey()
-	}
-
 	var message string
 	if r.Method == "POST" {
 		if !isAuthorized(ctx) {
@@ -86,12 +85,12 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 
 		r.ParseForm()
-
 		if r.Form["action"][0] == "Save" {
 			conf.SlackHook = r.Form["slackHook"][0]
-		} else if r.Form["action"][0] == "Regenerate" {
+		} else if r.Form["action"][0] == "Generate Access Key" {
 			conf.AccessKey = generateAccessKey()
 		}
+
 		err := writeConfig(ctx, conf)
 		if err != nil {
 			log.Errorf(ctx, "%v", err)
