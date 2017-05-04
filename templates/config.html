@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+<h1>Configuration</h1>
+
+{{with .Message}}<p>{{.}}</p>{{end}}
+
+<p>
+{{if .Email}}Logged in as <b>{{.Email}}</b> {{if .IsAdmin}}(authorized){{else}}(NOT authorized){{end}}.{{else}}Not logged in.{{end}}
+{{with .Login}}| <a href="{{.}}">Login</a>{{end}}
+{{with .Logout}}| <a href="{{.}}">Logout</a>{{end}}
+</p>
+
+<form method="post">
+	Slack Hook:
+	<input type="text" name="slackHook" value="{{.Config.SlackHook}}">
+	<input type="submit">
+</form>
