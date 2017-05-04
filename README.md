@@ -30,6 +30,8 @@ This implements a Venmo web hook that sends notifications of Venmo transactions 
    $ gcloud app deploy
    ```
 
+7. Visit the AppEngine URL for your new app and configure it.
+
 ## Configuration
 
 Within `app.yaml` you will want to set the `ADMIN` environment variable to point to a Google
