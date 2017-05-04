@@ -4,12 +4,14 @@
 <style>
   body {
 	  font-family: sans-serif;
+	  padding: 0 2em;
   }
   h1, h2, h3 {
 	  font-weight: normal;
   }
   h3 {
 	  margin-top: 2em;
+	  border-bottom: solid 1px #aaa;
   }
   pre, p, form {
 	  margin-left: 1em;
@@ -87,51 +89,46 @@ We will attempt to deliver messages to this webhook.
   You'll need to be signed in as an admin to make changes.
 {{end}}
 
-<h3 {{if .Config.AccessKey}}class="done"{{end}}>Step 3: Create an Access Key</h3>
+<h3 {{if .Config.AccessKey}}class="done"{{end}}>Step 3: Create a Venmo Webhook URL</h3>
 <p>
-An access key is used to protect the Venmo Webhook URL so that random people can't
-guess the URL and inject fake notifications.
+Venmo Webhook URLs are randomly generated, so that people can't discover them and spam
+Slack with fake Venmo requests.
 {{if .Config.AccessKey}}
-	An access key is configured.
+	A URL is configured.
 	{{if .IsAdmin}}
-		You may regenerate this at any time in the event it's been compromised.
-		This will invalidate the old Venmo Webhook URL and will require you to
+		You may regenerate it at any time in the event it's been compromised.
+		This will invalidate the old URL and will require you to
 		repeat the next step.
 	{{else}}
 		Sign in as an admin if you need to regenerate it.
 	{{end}}
 {{else}}
 	{{if .IsAdmin}}
-		No access key has been generated yet. Generate one now.
+		No URL has been generated yet. Generate one now.
 	{{else}}
-		No access key has been generated yet, but you'll need to sign in as an admin to generate it.
+		No URL has been generated yet, but you'll need to sign in as an admin to generate one.
 	{{end}}
 {{end}}
 
 {{if .IsAdmin}}
     <form method="post">
-	<input type="submit" name="action" value="Generate Access Key">
+	<input type="submit" name="action" value="Generate URL">
     </form>
+
+    {{if .Config.AccessKey}}
+	<pre id="keyedUrl">venmo-hook/{{.Config.AccessKey}}</pre>
+
+	<!-- XXX: Ideally, we'd do this on the server side, but cursory Google searching
+             doesn't tell me how to do this, so I'll just use Javascript. -->
+	<script>
+	  var k = document.getElementById("keyedUrl")
+	  k.innerHTML = document.URL + k.innerHTML
+	</script>
+    {{end}}
 {{end}}
 
 <h3>Step 4: Set up a Venmo Webhook</h3>
-{{if .Config.AccessKey}}
-	{{if .IsAdmin}}
-		<p>Sign in to your <a href="https://venmo.com">Venmo</a> account and
-		<a href="https://venmo.com/account/settings/developer">configure a Webhook URL</a>
-		pointing to:</p>
-		<pre id="keyedUrl">venmo-hook/{{.Config.AccessKey}}</pre>
-
-		<!-- XXX: Ideally, we'd do this on the server side, but cursory Google searching
-	             doesn't tell me how to do this, so I'll just use Javascript. -->
-		<script>
-		  var k = document.getElementById("keyedUrl")
-		  k.innerHTML = document.URL + k.innerHTML
-		</script>
-	{{else}}
-		<p>You need to be signed in as an admin to obtain the Venmo Webhook URL.
-	{{end}}
-{{else}}
-	<p>You need to generate an access key (above) in order to obtain the Venmo Webhook URL
-	for this step.</p>
-{{end}}
+<p>Sign in to your <a href="https://venmo.com">Venmo</a> account and
+<a href="https://venmo.com/account/settings/developer">configure a Webhook URL</a>
+pointing to the URL above.  {{if not .IsAdmin}}(You'll need to be signed in
+here as an admin to see it.){{end}}</p>

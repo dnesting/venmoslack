@@ -87,7 +87,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		if r.Form["action"][0] == "Save" {
 			conf.SlackHook = r.Form["slackHook"][0]
-		} else if r.Form["action"][0] == "Generate Access Key" {
+		} else if r.Form["action"][0] == "Generate URL" {
 			conf.AccessKey = generateAccessKey()
 		}
 
