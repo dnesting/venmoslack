@@ -34,7 +34,7 @@ For details, see: <a href="https://github.com/dnesting/venmoslack">https://githu
 
 <h2>Configuration</h2>
 
-<h3 {{if .IsAdmin}}class="done"{{end}}>Step 1: Log in as the <tt>ADMIN_USER</tt></h3>
+<h3 {{if .IsAdmin}}class="done"{{end}}>Step 1: Log in as the <tt>ADMIN</tt> user</h3>
 <p>
 {{if .Email}}
 	You are logged in as <i>{{.Email}}</i>,
@@ -43,7 +43,7 @@ For details, see: <a href="https://github.com/dnesting/venmoslack">https://githu
 		which is an admin user.
 	{{else}}
 		but this is <span class="prob">NOT an admin user.</span>
-		Check the value of the <tt>ADMIN_USER</tt> environment
+		Check the value of the <tt>ADMIN</tt> environment
 		variable defined for this application and make sure that
 		it matches.
 	{{end}}
@@ -65,10 +65,19 @@ We will attempt to deliver messages to this webhook.
 
 {{if .IsAdmin}}
     <form method="post">
-    Slack Hook URL:
-  	<input type="text" name="slackHook" value="{{.Config.SlackHook}}">
-  	<input type="submit" value="Save">
+        <div>Slack Hook URL:
+	  	<input type="text" name="slackHook" value="{{.Config.SlackHook}}">
+		<input type="submit" name="action" value="Save">
+        </div>
+	<div>Access Key:
+		<input type="text" name="key" value="{{.Config.AccessKey}}">
+		<input type="submit" name="action" value="Regenerate">
+	</div>
     </form>
+
+    {{if .Error}}
+    <p class="prob">{{.Error}}</p>
+    {{end}}
 {{else}}
   You'll need to be signed in as an admin to do this step.
 {{end}}
@@ -76,4 +85,10 @@ We will attempt to deliver messages to this webhook.
 <h3>Step 3: Set up a Venmo Webhook</h3>
 <p>Sign in to your <a href="https://venmo.com">Venmo</a> account and
 <a href="https://venmo.com/account/settings/developer">configure a Webhook URL</a>
-pointing to <b><a href="/venmo-hook">the <tt>/venmo-hook</tt> path beneath this URL</a></b>.
+pointing to:</p>
+<p id="keyedUrl">/venmo-hook/{{.Config.AccessKey}}</p>
+
+<script>
+  var k = document.getElementById("keyedUrl")
+  k.innerHTML = document.URL + k.innerHTML
+</script>

@@ -7,6 +7,7 @@ package venmoslack
 import (
 	"fmt"
 	"html/template"
+	"math/rand"
 	"net/http"
 	"os"
 
@@ -20,6 +21,7 @@ import (
 
 type Config struct {
 	SlackHook string
+	AccessKey string
 }
 
 func configKey(ctx context.Context) *datastore.Key {
@@ -36,15 +38,25 @@ func writeConfig(ctx context.Context, c Config) (err error) {
 	return
 }
 
-var tpl = template.Must(template.ParseGlob("templates/*.html"))
-
-func init() {
-	http.HandleFunc("/", handleIndex)
-}
+var tpl = template.Must(template.ParseGlob("templates/*.tmpl"))
 
 func isAuthorized(ctx context.Context) bool {
 	u := user.Current(ctx)
 	return u != nil && u.Email == os.Getenv("ADMIN")
+}
+
+const keyBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+func generateAccessKey() string {
+	b := make([]byte, 20)
+	for i := range b {
+		b[i] = keyBytes[rand.Int63()%int64(len(keyBytes))]
+	}
+	return string(b)
+}
+
+func init() {
+	http.HandleFunc("/", handleIndex)
 }
 
 func handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -62,6 +74,10 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		login, _ = user.LoginURL(ctx, "/")
 	}
 
+	if conf.AccessKey == "" {
+		conf.AccessKey = generateAccessKey()
+	}
+
 	var message string
 	if r.Method == "POST" {
 		if !isAuthorized(ctx) {
@@ -70,13 +86,16 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 
 		r.ParseForm()
-		conf.SlackHook = r.Form["slackHook"][0] // No error checking but we don't care
+
+		if r.Form["action"][0] == "Save" {
+			conf.SlackHook = r.Form["slackHook"][0]
+		} else if r.Form["action"][0] == "Regenerate" {
+			conf.AccessKey = generateAccessKey()
+		}
 		err := writeConfig(ctx, conf)
 		if err != nil {
 			log.Errorf(ctx, "%v", err)
 			message = fmt.Sprintf("Failed to write config: %v", err)
-		} else {
-			message = "Successfully wrote config"
 		}
 	}
 
@@ -84,17 +103,17 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		Login, Logout, Email string
 		Config               Config
 		IsAdmin              bool
-		Message              string
+		Error                string
 	}{
 		Login:   login,
 		Logout:  logout,
 		Email:   email,
 		Config:  conf,
 		IsAdmin: isAuthorized(ctx),
-		Message: message,
+		Error:   message,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := tpl.ExecuteTemplate(w, "index.html", data); err != nil {
+	if err := tpl.ExecuteTemplate(w, "index.tmpl", data); err != nil {
 		log.Errorf(ctx, "%v", err)
 	}
 }
