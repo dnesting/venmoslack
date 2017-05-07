@@ -5,6 +5,10 @@ env_variables:
   # Change this so you can configure your instance
   ADMIN: "david@fastolfe.net"
 
+  # If the Venmo account represents a group, set this to "group".
+  # This is only used in the message template.
+  ACCOUNT_TYPE: "user"
+
 handlers:
 - url: /.*
   script: _go_app

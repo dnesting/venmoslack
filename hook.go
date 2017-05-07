@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path"
 	"time"
 
@@ -56,6 +57,11 @@ type venmoWebhook struct {
 			User  venmoUser
 		} `json:"target"`
 	} `json:"data"`
+}
+
+type tmplData struct {
+	Group bool
+	Venmo venmoWebhook
 }
 
 func init() {
@@ -107,14 +113,18 @@ func hook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Decode the Venmo Webhook payload
-	var data venmoWebhook
+	var venmoData venmoWebhook
 	decoder := json.NewDecoder(r.Body)
-	if err := decoder.Decode(&data); err != nil {
+	if err := decoder.Decode(&venmoData); err != nil {
 		log.Errorf(ctx, "json: %v", err)
 		http.Error(w, "Error decoding JSON body", http.StatusBadRequest)
 		return
 	}
 
+	data := tmplData{
+		Group: os.Getenv("ACCOUNT_TYPE") == "group",
+		Venmo: venmoData,
+	}
 	log.Debugf(ctx, "%+v", data)
 
 	// Render the Slack message
