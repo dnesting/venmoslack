@@ -1,3 +1,3 @@
 package venmoslack
 
-const Release = "0.1"
+const Release = "1"
