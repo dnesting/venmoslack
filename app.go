@@ -5,6 +5,7 @@
 package venmoslack
 
 import (
+	"container/ring"
 	"fmt"
 	"html/template"
 	"math/rand"
@@ -62,11 +63,23 @@ func init() {
 	http.HandleFunc("/", handleIndex)
 }
 
+const historySize = 3
+
+var history = ring.New(historySize)
+
 func handleIndex(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	conf, err := getConfig(ctx)
+
+	// If no initial config, create one.
 	if err != nil {
-		log.Errorf(ctx, "%v", err)
+		conf.AccessKey = generateAccessKey()
+		err = writeConfig(ctx, conf)
+		if err != nil {
+			log.Errorf(ctx, "%v", err)
+			http.Error(w, "Config error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	var email, logout, login string
@@ -87,8 +100,10 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		if r.Form["action"][0] == "Save" {
 			conf.SlackHook = r.Form["slackHook"][0]
-		} else if r.Form["action"][0] == "Generate URL" {
+			message = "Saved Slack Incoming Webhook URL"
+		} else if r.Form["action"][0] == "Regenerate" {
 			conf.AccessKey = generateAccessKey()
+			message = "Saved Venmo Webhook URL"
 		}
 
 		err := writeConfig(ctx, conf)
@@ -98,18 +113,35 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	histSlice := make([]string, historySize)
+	i := 0
+	history.Do(func(v interface{}) {
+		if v != nil {
+			s := v.(string)
+			if s != "" {
+				histSlice[i] = v.(string)
+				i++
+			}
+		}
+	})
+	histSlice = histSlice[:i]
+
 	data := struct {
 		Login, Logout, Email string
 		Config               Config
 		IsAdmin              bool
-		Error                string
+		Message              string
+		Version              string
+		History              []string
 	}{
 		Login:   login,
 		Logout:  logout,
 		Email:   email,
 		Config:  conf,
 		IsAdmin: isAuthorized(ctx),
-		Error:   message,
+		Message: message,
+		Version: Release,
+		History: histSlice,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := tpl.ExecuteTemplate(w, "index.tmpl", data); err != nil {
