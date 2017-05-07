@@ -131,6 +131,9 @@ func hook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error sending message", http.StatusInternalServerError)
 		return
 	}
+
+	history.Value = buf.String()
+	history = history.Next()
 }
 
 // sendToSlack delivers msg to the pre-configured Slack webhook URL.

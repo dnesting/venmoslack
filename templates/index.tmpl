@@ -1,134 +1,187 @@
 <!DOCTYPE html>
 <title>Venmo → Slack integration</title>
-<h1>Venmo → Slack Integration</h1>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.purple-blue.min.css" />
+<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+<script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+<script defer src="https://getmdl.io/assets/snippets.js"></script>
 <style>
-  body {
-	  font-family: sans-serif;
-	  padding: 0 2em;
+  .mdl-layout__header-row {
+    padding: 0 40px;
   }
-  h1, h2, h3 {
-	  font-weight: normal;
+
+  .mdl-layout.has-drawer .mdl-layout__header-row {
+    padding: 0 40px 0 80px;
   }
-  h3 {
-	  margin-top: 2em;
-	  border-bottom: solid 1px #aaa;
+  .page-content {
+    padding: 1em 3em;
   }
-  pre, p, form {
-	  margin-left: 1em;
+  .footer {
+    font-style: italic;
   }
-  pre {
-	  background-color: #eee;
-	  border: solid 1px #888;
-	  padding: 1em;
+  code {
+    display: block;
+    background-color: #eee;
+    padding: 1em 2em;
   }
-  input {
-	  min-width: 50em;
-	  padding: 1ex;
+
+  hr {
+    margin-top: 3em;
+    margin-bottom: 1ex;
   }
-  h3.done {
-	  color: #484;
+  .snippet-code {
+    position: relative
   }
-  h3.done:after {
-	  content: " (done)";
+  .snippet-code code:hover::before {
+    display: inline-block;
+    content: 'click to copy';
+    color: rgba(0,0,0,.5);
+    font-size: 13px;
+    background-color: rgba(0,0,0,.1);
+    border-top-left-radius: 5px;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding: 3px 10px
   }
-  .prob {
-	  background-color: #fee;
-	  border: solid 1px #f88;
-	  padding: 1em;
-	  color: red;
+  .snippet-code code.copied::before {
+    content: 'copied';
+    color: rgba(255,255,255,.5);
+    background-color: rgba(0,0,0,.6)
+  }
+
+  .snippet-code code.nosupport::before {
+    content: "browser not supported :'(";
+    color: rgba(255,255,255,.5);
+    background-color: rgba(0,0,0,.6)
   }
 </style>
 
-<p>This implements a webhook, reporting Venmo transactions to Slack.
-For details, see: <a href="https://github.com/dnesting/venmoslack">https://github.com/dnesting/venmoslack</a>.
+<div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+  <header class="mdl-layout__header">
+    <div class="mdl-layout__header-row">
+      <span class="mdl-layout-title"> Venmo → Slack Integration </span>
+      <div class="mdl-layout-spacer"></div>
+      <nav class="mdl-navigation">
+        {{if .Email}}
+          <span class="mdl-layout--large-screen-only">
+            <div style="margin-right: 1em">Signed in as <b>{{.Email}}</b></div>
+            <div class="mdl-layout-spacer"></div>
+          </span>
+          <a class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" href="{{.Logout}}">Sign out</a>
+        {{else}}
+          <a class="mdl-button mdl-js-button mdl-button--raised mdl-button--accent" href="{{.Login}}">Sign in to configure</a>
+        {{end}}
+      </nav>
+    </div>
+  </header>
+  <main class="mdl-layout__content mdl-color-text--grey-600">
+  <div class="page-content">
 
-<h2>Configuration</h2>
+    {{if .Email}}
+      {{if .IsAdmin}}
 
-{{if .Error}}
-	<p class="prob">{{.Error}}</p>
-{{end}}
+      <h4>Configure Slack Webhook</h4>
 
-<h3 {{if .IsAdmin}}class="done"{{end}}>Step 1: Log in as the <tt>ADMIN</tt> user</h3>
-<p>
-{{if .Email}}
-	You are logged in as <i>{{.Email}}</i>,
+      <p><a href="https://my.slack.com/services/new/incoming-webhook/">Set up
+        a Slack Incoming Webhook</a> for your team.  Enter the URL for your Webhook below.</p>
 
-	{{if .IsAdmin}}
-		which is an admin user.
-	{{else}}
-		but this is <span class="prob">NOT an admin user.</span>
-		Check the value of the <tt>ADMIN</tt> environment
-		variable defined for this application and make sure that
-		it matches.
-	{{end}}
-	<a href="{{.Logout}}">Logout</a> if you'd like to try another user.
-{{else}}
-	<b><a href="{{.Login}}">Log in as an admin user</a></b>.
-{{end}}
-
-<h3 {{if .Config.SlackHook}}class="done"{{end}}>Step 2: Set up a Slack Webhook</h3>
-<p>
-{{if .Config.SlackHook}}
-A <a href="https://api.slack.com/incoming-webhooks">Slack Incoming Webhook</a> is
-configured.
-{{else}}
-<b>Create a <a href="https://api.slack.com/incoming-webhooks">Slack Incoming Webhook</a></b>
-and configure it here.
-{{end}}
-We will attempt to deliver messages to this webhook.
-
-{{if .IsAdmin}}
-    <form method="post">
-        <div>Slack Hook URL:
-	  	<input type="text" name="slackHook" value="{{.Config.SlackHook}}">
-		<input type="submit" name="action" value="Save">
+      <form method="post">
+        <div class="mdl-grid">
+          <div class="mdl-cell mdl-cell--10-col mdl-cell--6-col-tablet mdl-cell--4-col-phone">
+            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label" style="width: 100%">
+              <input class="mdl-textfield__input" type="url" name="slackHook" id="slackHook" value="{{.Config.SlackHook}}">
+              <label class="mdl-textfield__label" for="slackHook">Slack Incoming Webhook URL</label>
+            </div>
+          </div>
+          <div class="mdl-cell mdl-cell--2-col mdl-cell--4-col-phone" style="text-align: right">
+            <input type="submit" id="action_save" name="action" value="Save" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+          </div>
         </div>
-    </form>
+      </form>
 
-{{else}}
-  You'll need to be signed in as an admin to make changes.
-{{end}}
+      <h4>Configure Venmo Webhook</h4>
 
-<h3 {{if .Config.AccessKey}}class="done"{{end}}>Step 3: Create a Venmo Webhook URL</h3>
-<p>
-Venmo Webhook URLs are randomly generated, so that people can't discover them and spam
-Slack with fake Venmo requests.
-{{if .Config.AccessKey}}
-	A URL is configured.
-	{{if .IsAdmin}}
-		You may regenerate it at any time in the event it's been compromised.
-		This will invalidate the old URL and will require you to
-		repeat the next step.
-	{{else}}
-		Sign in as an admin if you need to regenerate it.
-	{{end}}
-{{else}}
-	{{if .IsAdmin}}
-		No URL has been generated yet. Generate one now.
-	{{else}}
-		No URL has been generated yet, but you'll need to sign in as an admin to generate one.
-	{{end}}
-{{end}}
+      <p>This integration receives events from Venmo at the URL below.  It has a random
+      component to it so that people can't discover your integration and spam Slack with
+      fake notifications.  You can regenerate this URL at any time, but will need to
+      update Venmo when you do so.</p>
 
-{{if .IsAdmin}}
-    <form method="post">
-	<input type="submit" name="action" value="Generate URL">
-    </form>
+      <p>To start receiving notifications:</p>
 
-    {{if .Config.AccessKey}}
-	<pre id="keyedUrl">venmo-hook/{{.Config.AccessKey}}</pre>
+      <ol>
+        <li><a href="https://venmo.com/">Sign in to your Venmo account</a>
+          <li>Visit your account's <a href="https://venmo.com/account/settings/developer">Developer Settings</a>
+            <li>For Venmo Webhook URL, enter the URL below
+      </ol>
 
-	<!-- XXX: Ideally, we'd do this on the server side, but cursory Google searching
-             doesn't tell me how to do this, so I'll just use Javascript. -->
-	<script>
-	  var k = document.getElementById("keyedUrl")
-	  k.innerHTML = document.URL + k.innerHTML
-	</script>
+      <form method="post">
+        <div class="mdl-grid">
+          <div class="mdl-cell mdl-cell--10-col mdl-cell--6-col-tablet mdl-cell--4-col-phone snippet-code">
+            <code class="language-markup" id="keyedUrl">venmo-hook/{{.Config.AccessKey}}</code>
+          </div>
+          <div class="mdl-cell mdl-cell--2-col mdl-cell--4-col-phone" style="text-align: right">
+            <input type="submit" name="action" value="Regenerate" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+          </div>
+        </div>
+      </form>
+
+      <h4>Recent Events</h4>
+
+      {{if .History}}
+        <ul>
+          {{range .History}}
+            <li>{{.}}</li>
+          {{end}}
+        </ul>
+      {{else}}
+        <p>No messages have been recorded yet.</p>
+      {{end}}
+
+    {{else}}
+      <p>You are signed in as <b>{{.Email}}</b>, which is not an admin account.  Check
+      the <tt>ADMIN</tt> environment variable configuration for this instance to be
+      sure that it matches your sign-in account, and try again.
     {{end}}
-{{end}}
 
-<h3>Step 4: Set up a Venmo Webhook</h3>
-<p>Sign in to your <a href="https://venmo.com">Venmo</a> account and
-<a href="https://venmo.com/account/settings/developer">configure a Webhook URL</a>
-pointing to the URL above.  {{if not .IsAdmin}}(You'll need to be signed in
-here as an admin to see it.){{end}}</p>
+  {{else}}
+    <p>Please <a href="{{.Login}}">sign in as an admin</a> to configure this instance.</p>
+  {{end}}
+
+  <hr>
+
+  <div class="footer"><a href="https://github.com/dnesting/venmoslack">https://github.com/dnesting/venmoslack</a> {{.Version}}</div>
+
+  <div id="toast" class="mdl-js-snackbar mdl-snackbar">
+    <div class="mdl-snackbar__text"></div>
+    <button class="mdl-snackbar__action" type="button"></button>
+  </div>
+
+  </div>
+  </main>
+</div>
+
+<script language="javascript">
+(function(){
+  function deferred() {
+    var k = document.getElementById("keyedUrl");
+    k.innerText = document.URL + k.innerText;
+
+    {{if .Message}}
+      var snackbarContainer = document.querySelector('#toast');
+      var data = {message: "{{.Message}}"};
+      window.setTimeout(function() {
+        snackbarContainer.MaterialSnackbar.showSnackbar(data);
+      }, 0);
+    {{end}}
+  }
+  var orig = window.onload;
+  window.onload = function() {
+    if (orig != null) {
+      orig();
+    }
+    deferred();
+  };
+}());
+</script>
