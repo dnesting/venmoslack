@@ -163,21 +163,25 @@
 </div>
 
 <script language="javascript">
-function deferred() {
-  {{if .Message}}
-    var snackbarContainer = document.querySelector('#toast');
-    var data = {message: "{{.Message}}"};
-    snackbarContainer.MaterialSnackbar.showSnackbar(data);
-  {{end}}
+(function(){
+  function deferred() {
+    var k = document.getElementById("keyedUrl");
+    k.innerText = document.URL + k.innerText;
 
-  var k = document.getElementById("keyedUrl");
-  k.innerText = document.URL + k.innerText;
-}
-var orig = window.onload;
-window.onload = function() {
-  if (orig != null) {
-    orig();
+    {{if .Message}}
+      var snackbarContainer = document.querySelector('#toast');
+      var data = {message: "{{.Message}}"};
+      window.setTimeout(function() {
+        snackbarContainer.MaterialSnackbar.showSnackbar(data);
+      }, 0);
+    {{end}}
   }
-  deferred();
-};
+  var orig = window.onload;
+  window.onload = function() {
+    if (orig != null) {
+      orig();
+    }
+    deferred();
+  };
+}());
 </script>

@@ -72,7 +72,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	conf, err := getConfig(ctx)
 
 	// If no initial config, create one.
-	if err != nil {
+	if err != nil || conf.AccessKey == "" {
 		conf.AccessKey = generateAccessKey()
 		err = writeConfig(ctx, conf)
 		if err != nil {
@@ -103,7 +103,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 			message = "Saved Slack Incoming Webhook URL"
 		} else if r.Form["action"][0] == "Regenerate" {
 			conf.AccessKey = generateAccessKey()
-			message = "Saved Venmo Webhook URL"
+			message = "Regenerated Venmo Webhook URL"
 		}
 
 		err := writeConfig(ctx, conf)
